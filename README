@@ -1,4 +1,4 @@
-Net::IfConfig::Wrapper version 0.02
+Net::IfConfig::Wrapper version 0.03
 ===================
 
 This module could be use to call the ifconfig command on different Unix systems
@@ -21,10 +21,11 @@ To install this module type the following:
 
 DEPENDENCIES
 
-This module requires these other modules (on Win32):
+This module requires these other modules:
 
-Win32::API
-Win32::WinError
+POSIX
+Win32::API      (on Win32)
+Win32::WinError (on Win32)
 
 COPYRIGHT AND LICENCE
 

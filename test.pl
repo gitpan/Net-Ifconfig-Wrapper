@@ -23,12 +23,13 @@ use Net::Ifconfig::Wrapper;
 ok(1); # If we made it this far, we're ok.
 
 
+
 print 'Geting information about interfaces...';
 
 my $Info = Net::Ifconfig::Wrapper::Ifconfig('list')
 	or die $@;
 
-ok(2);
+ok(1);
 
 if ($IfCfgCmd{$^O})
 	{
@@ -53,94 +54,103 @@ while (<STDIN>)
 	print "Is Net\:\:Ifconfig\:\:Wrapper info output correct? Y/N:";
 	};
 
-print 'Information displayed correctly.......';
+print "\nInformation displayed correctly.......";
 
-ok(3);
+ok(1);
 
-print "Please choose the interface for add/remove alias function test\n";
 
-my @Ifaces = ('skip test');
 
-push(@Ifaces, sort(keys(%{$Info})));
-
-my $DefIface = '';
-
-for (my $RI = 0; defined($Ifaces[$RI]); $RI++)
+if (($^O eq "MSWin32") || ($> == 0))
 	{
-	(($Ifaces[$RI] =~ m/\Alo/i) && !length($DefIface))
-		and $DefIface = $RI;
-	print "$RI:\t".$Ifaces[$RI]."\n";
-	};
-
-print "($DefIface):";
-
-while (<STDIN>)
-	{
-	if    (($_ =~ m/\A\s*\n?\Z/i) && length($DefIface))
-		{ last; }
-	elsif (($_ =~ m/\A\s*(\d+)\s*\n?\Z/i) && defined($Ifaces[$1]))
-		{
-		$DefIface = $1;
-		last;
-		};
-	print "Please choose the interface for add/remove alias function tests\n";
+	print "\nPlease choose the interface for add/remove alias function test\n";
+	
+	my @Ifaces = ('skip test');
+	
+	push(@Ifaces, sort(keys(%{$Info})));
+	
+	my $DefIface = '';
+	
 	for (my $RI = 0; defined($Ifaces[$RI]); $RI++)
-		{ print "$RI:\t".$Ifaces[$RI]."\n"; };
+		{
+		(($Ifaces[$RI] =~ m/\Alo/i) && !length($DefIface))
+			and $DefIface = $RI;
+		print "$RI:\t".$Ifaces[$RI]."\n";
+		};
+	
 	print "($DefIface):";
-	};
-
-if (!$DefIface)
+	
+	while (<STDIN>)
+		{
+		if    (($_ =~ m/\A\s*\n?\Z/i) && length($DefIface))
+			{ last; }
+		elsif (($_ =~ m/\A\s*(\d+)\s*\n?\Z/i) && defined($Ifaces[$1]))
+			{
+			$DefIface = $1;
+			last;
+			};
+		print "Please choose the interface for add/remove alias function tests\n";
+		for (my $RI = 0; defined($Ifaces[$RI]); $RI++)
+			{ print "$RI:\t".$Ifaces[$RI]."\n"; };
+		print "($DefIface):";
+		};
+	
+	if (!$DefIface)
+		{
+		print "add/remove alias function tests (4,5) skipped\n";
+		exit 0;
+		};
+	
+	my $Addr = '192.168.192.168';
+	my $Mask = '255.255.255.0';
+	
+	print "Please choose address and mask for test alias\n($Addr:$Mask):";
+	
+	while (<STDIN>)
+		{
+		$_ =~ m/\A\s*\n?\Z/i
+			and last;
+		if ($_ =~ m/\A\s*(\d{1,3}(?:\.\d{1,3}){3})\s*\:?\s*(\d{1,3}(?:\.\d{1,3}){3})\s*\n?\Z/i)
+			{
+			$Addr = $1;
+			$Mask = $2;
+			last;
+			};
+		print "Please choose address and mask for test alias\n($Addr:$Mask):";
+		};
+	print "\nAdding   alias '$Addr:$Mask' to   interface ".$Ifaces[$DefIface]."...";
+	
+	Net::Ifconfig::Wrapper::Ifconfig('+alias', $Ifaces[$DefIface], $Addr, $Mask)
+		or die $@;
+	
+	$Info = Net::Ifconfig::Wrapper::Ifconfig('list')
+		or die $@;
+	
+	defined($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr}) &&
+		($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr} eq $Mask)
+		or die "Can not find recently added address '$Addr:$Mask' on interface ".$Ifaces[$DefIface];
+	
+	ok(1);
+	
+	print "Removing alias '$Addr:$Mask' from interface ".$Ifaces[$DefIface]."...";
+	
+	Net::Ifconfig::Wrapper::Ifconfig('-alias', $Ifaces[$DefIface], $Addr, '')
+		or die $@;
+	
+	$Info = Net::Ifconfig::Wrapper::Ifconfig('list')
+		or die $@;
+	
+	defined($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr})
+		and die "Can not remove recently added address '$Addr:$Mask' from interface ".$Ifaces[$DefIface];
+	
+	ok(1);
+	}
+else
 	{
-	print "add/remove alias function tests (4,5) skipped";
+	print "add/remove alias function tests (4,5) skipped: insufficient privileges\n";
 	exit 0;
 	};
 
-my $Addr = '192.168.192.168';
-my $Mask = '255.255.255.0';
-
-print "Please choose address and mask for test alias\n($Addr:$Mask):";
-
-while (<STDIN>)
-	{
-	$_ =~ m/\A\s*\n?\Z/i
-		and last;
-	if ($_ =~ m/\A\s*(\d{1,3}(?:\.\d{1,3}){3})\s*\:?\s*(\d{1,3}(?:\.\d{1,3}){3})\s*\n?\Z/i)
-		{
-		$Addr = $1;
-		$Mask = $2;
-		last;
-		};
-	print "Please choose address and mask for test alias\n($Addr:$Mask):";
-	};
-
-print "Adding   alias '$Addr:$Mask' to   interface ".$Ifaces[$DefIface]."...";
-
-Net::Ifconfig::Wrapper::Ifconfig('+alias', $Ifaces[$DefIface], $Addr, $Mask)
-	or die $@;
-
-$Info = Net::Ifconfig::Wrapper::Ifconfig('list')
-	or die $@;
-
-defined($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr}) &&
-	($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr} eq $Mask)
-	or die "Can not find recently added address '$Addr:$Mask' on interface ".$Ifaces[$DefIface];
-
-ok(4);
-
-print "Removing alias '$Addr:$Mask' from interface ".$Ifaces[$DefIface]."...";
-
-Net::Ifconfig::Wrapper::Ifconfig('-alias', $Ifaces[$DefIface], $Addr, '')
-	or die $@;
-
-$Info = Net::Ifconfig::Wrapper::Ifconfig('list')
-	or die $@;
-
-defined($Info->{$Ifaces[$DefIface]}->{'inet'}->{$Addr})
-	and die "Can not remove recently added address '$Addr:$Mask' from interface ".$Ifaces[$DefIface];
-
-ok(5);
-
-exit 0;
+#exit 0;
 
 sub IfaceInfo
 	{

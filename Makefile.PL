@@ -12,7 +12,7 @@ my %Supported = ('freebsd' => 1,
 $Supported{$^O}
 	or warn "\nWARNING! Your system '$^O' is not supported\b\n\n";
 
-my $PreReq = {};
+my $PreReq = {'POSIX' => 0,};
 
 if ( $^O eq 'MSWin32' )
 	{

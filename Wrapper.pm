@@ -21,7 +21,10 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.02';
+$VERSION = '0.03';
+
+use POSIX;
+my ($OsName, $OsVers) = (POSIX::uname())[0,2];
 
 my $Win32_FormatMessage   = undef;
 my %Win32API = ();
@@ -59,7 +62,7 @@ if ($^O eq 'MSWin32')
 	      	{
 	      	foreach my $Func (keys(%{$ToLoad{$DLib}}))
 	      		{
-	      		$Win32API{$DLib}->{$Func} = Win32::API->new($DLib, $Func, $ToLoad{$DLib}->{$Func}->[0], $ToLoad{$DLib}->{$Func}->[1])
+	      		$Win32API{$DLib}{$Func} = Win32::API->new($DLib, $Func, $ToLoad{$DLib}{$Func}->[0], $ToLoad{$DLib}{$Func}->[1])
 	      			or die "Cannot import function \'$Func\' from \'$DLib\' DLL: $^E";
 	      		};
 	      	};
@@ -100,7 +103,9 @@ my $RunCmd = sub($$)
 	{
 	my ($CName, $Iface, $Logic, $Addr, $Mask) = @_;
 
-	my $Cmd = $Ifconfig{$CName}->{$^O}->{'ifconfig'}.' 2>&1';
+	my $Cmd = (defined($Ifconfig{$CName}{$^O}{$OsName}{$OsVers}{'ifconfig'}) ?
+	           $Ifconfig{$CName}{$^O}{$OsName}{$OsVers}{'ifconfig'}          :
+	           $Ifconfig{$CName}{$^O}{'ifconfig'}).' 2>&1';
 
 	#print "\n=== RunCmd ===\n\$CName: $CName, \$Iface: $Iface, \$Logic: $Logic, \$Addr: $Addr, \$Mask: $Mask\n";
 
@@ -139,8 +144,8 @@ my $SolarisList = sub($$$$)
 			$Iface = $1;
 			$Logic = defined($2) ? $2 : '';
 			$LogUp = 1 && $3;
-			#$Info->{$Iface}->{'status'} = ($Info->{$Iface}->{'status'} || $LogUp) ? 1 : 0;
-			$Info->{$Iface}->{'status'} = $Info->{$Iface}->{'status'} || $LogUp;
+			#$Info->{$Iface}{'status'} = ($Info->{$Iface}{'status'} || $LogUp) ? 1 : 0;
+			$Info->{$Iface}{'status'} = $Info->{$Iface}{'status'} || $LogUp;
 			}
 		elsif (!$Iface)
 			{
@@ -149,17 +154,17 @@ my $SolarisList = sub($$$$)
 		elsif ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+netmask\s+(?:0x)?([a-f\d]{8})(?:\s.*)?\n?\Z/io)
 			{
 			$LogUp
-				and $Info->{$Iface}->{'inet'}->{$1} = $Hex2Mask{$2};
-			$Inet2Logic->{$Iface}->{$1} = $Logic;
-			$Logic2Inet->{$Iface}->{$Logic} = $1;
+				and $Info->{$Iface}{'inet'}{$1} = $Hex2Mask{$2};
+			$Inet2Logic->{$Iface}{$1} = $Logic;
+			$Logic2Inet->{$Iface}{$Logic} = $1;
 			}
-		elsif (($_ =~ m/\A\s+media\:?\s+ethernet.*\n?\Z/io) && !$Info->{$Iface}->{'ether'})
+		elsif (($_ =~ m/\A\s+media\:?\s+ethernet.*\n?\Z/io) && !$Info->{$Iface}{'ether'})
 			{
-			$Info->{$Iface}->{'ether'} = $ETHERNET;
+			$Info->{$Iface}{'ether'} = $ETHERNET;
 			}
 		elsif ($_ =~ m/\A\s+ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io)
 			{
-			$Info->{$Iface}->{'ether'} = $1;
+			$Info->{$Iface}{'ether'} = $1;
 			};
 		};
 
@@ -187,8 +192,8 @@ my $LinuxList = sub($$$$)
 			$Iface = $1;
 			$Logic = defined($2) ? $2 : '';
 			defined($3)
-				and $Info->{$Iface}->{'ether'} = $3;
-			$Info->{$Iface}->{'status'} = 0;
+				and $Info->{$Iface}{'ether'} = $3;
+			$Info->{$Iface}{'status'} = 0;
 			}
 		elsif (!$Iface)
 			{
@@ -196,13 +201,13 @@ my $LinuxList = sub($$$$)
 			}
 		elsif ($_ =~ m/\A\s+inet\s+addr\:(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?mask\:(\d{1,3}(?:\.\d{1,3}){3}).*\n?\Z/io)
 			{
-			$Info->{$Iface}->{'inet'}->{$1} = $2;
-			$Inet2Logic->{$Iface}->{$1} = $Logic;
-			$Logic2Inet->{$Iface}->{$Logic} = $1;
+			$Info->{$Iface}{'inet'}{$1} = $2;
+			$Inet2Logic->{$Iface}{$1} = $Logic;
+			$Logic2Inet->{$Iface}{$Logic} = $1;
 			}
 		elsif ($_ =~ m/\A\s+up(?:\s+[^\s]+)*\s*\n?\Z/io)
 			{
-			$Info->{$Iface}->{'status'} = 1;
+			$Info->{$Iface}{'status'} = 1;
 			};
 		};
 
@@ -334,12 +339,12 @@ my $Win32List = sub($$$$)
 	my $Buff = '';
 	my $BuffLen = pack('L', 0);
 
-	my $Res = $Win32API{'iphlpapi'}->{'GetAdaptersInfo'}->Call(0, $BuffLen);
+	my $Res = $Win32API{'iphlpapi'}{'GetAdaptersInfo'}->Call(0, $BuffLen);
 
 	while ($Res == $Win32_ERROR_BUFFER_OVERFLOW)
 		{
 		$Buff = "\0" x unpack("L", $BuffLen);
-		$Res = $Win32API{'iphlpapi'}->{'GetAdaptersInfo'}->Call($Buff, $BuffLen);
+		$Res = $Win32API{'iphlpapi'}{'GetAdaptersInfo'}->Call($Buff, $BuffLen);
 		};
 
 	if ($Res != $Win32_NO_ERROR)
@@ -365,7 +370,7 @@ my $Win32List = sub($$$$)
 		foreach my $AddrField ('IpAddressList', 'GatewayList', 'DhcpServer', 'PrimaryWinsServer', 'SecondaryWinsServer')
 			{
 			foreach my $Field ('IpAddress', 'IpMask')
-				{ $ADAPTER_INFO->{$AddrField}->{$Field} =~ s/\x00+\Z//o; };
+				{ $ADAPTER_INFO->{$AddrField}{$Field} =~ s/\x00+\Z//o; };
 			};
 
 
@@ -386,17 +391,17 @@ my $Win32List = sub($$$$)
 
 		my $Iface = $ADAPTER_INFO->{'AdapterName'};
 
-	        $Info->{$Iface}->{'descr'}  = $ADAPTER_INFO->{'Description'};
-	        $Info->{$Iface}->{'ether'}  = $ADAPTER_INFO->{'Address'};
-		$Info->{$Iface}->{'status'} = 1;
+	        $Info->{$Iface}{'descr'}  = $ADAPTER_INFO->{'Description'};
+	        $Info->{$Iface}{'ether'}  = $ADAPTER_INFO->{'Address'};
+		$Info->{$Iface}{'status'} = 1;
 	        
 	        foreach my $Addr (@{$ADAPTER_INFO->{'IpAddressList'}})
 	        	{
 	        	($Addr->{'IpAddress'} eq '0.0.0.0')
 	        		and next;
-	        	$Info->{$Iface}->{'inet'}->{$Addr->{'IpAddress'}} = $Addr->{'IpMask'};
-			$Inet2Logic->{$Iface}->{$Addr->{'IpAddress'}} = $Addr->{'Context'};
-			$Logic2Inet->{$Iface}->{$Addr->{'Context'}} = $Addr->{'IpAddress'};
+	        	$Info->{$Iface}{'inet'}{$Addr->{'IpAddress'}} = $Addr->{'IpMask'};
+			$Inet2Logic->{$Iface}{$Addr->{'IpAddress'}} = $Addr->{'Context'};
+			$Logic2Inet->{$Iface}{$Addr->{'Context'}} = $Addr->{'IpAddress'};
 	        	};
 
 	        $Name2Index->{$Iface} = $ADAPTER_INFO->{'Index'};
@@ -408,12 +413,12 @@ my $Win32List = sub($$$$)
 
 	#$Buff = '';
 	#$BuffLen = pack('L', 0);
-	#$Res = $Win32API{'iphlpapi'}->{'GetIpAddrTable'}->Call($Buff, $BuffLen, 0);
+	#$Res = $Win32API{'iphlpapi'}{'GetIpAddrTable'}->Call($Buff, $BuffLen, 0);
 	#
 	#while ($Res == ERROR_INSUFFICIENT_BUFFER)
 	#	{
 	#	$Buff = "\0" x unpack("L", $BuffLen);
-	#	$Res = $Win32API{'iphlpapi'}->{'GetIpAddrTable'}->Call($Buff, $BuffLen, 0);
+	#	$Res = $Win32API{'iphlpapi'}{'GetIpAddrTable'}->Call($Buff, $BuffLen, 0);
 	#	};
 	#
 	#if ($Res != $Win32_NO_ERROR)
@@ -430,7 +435,7 @@ my $Win32List = sub($$$$)
 	#	my $IPADDRROW = &{$UnpackStruct}(\$Buff, $st_MIB_IPADDRROW);
 	#	$Info->{$IPADDRROW->{'dwIndex'}}
 	#		and next;
-	#        $Info1{$IPADDRROW->{'dwIndex'}}->{'inet'}->{if_ipaddr($IPADDRROW->{'dwAddr'})} = if_ipaddr($IPADDRROW->{'dwMask'});
+	#        $Info1{$IPADDRROW->{'dwIndex'}}{'inet'}{if_ipaddr($IPADDRROW->{'dwAddr'})} = if_ipaddr($IPADDRROW->{'dwMask'});
 	#	};
 	#
 	#foreach my $Iface (keys(%Info1))
@@ -451,7 +456,7 @@ $Ifconfig{'list'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig -a',
                                    'function' => $Win32List,},
                     };
 
-$Ifconfig{'list'}->{'freebsd'} = $Ifconfig{'list'}->{'solaris'};
+$Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};
 
 my $UpDown = sub($$$$)
 	{
@@ -482,10 +487,12 @@ my $UpDownNewLog = sub($$$$)
 		};
 
 	defined($Inet2Logic)
-		or &{$Ifconfig{'list'}->{$^O}->{'function'}}()
+		or (defined($Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	            &{$Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}}()     :
+	            &{$Ifconfig{'list'}{$^O}{'function'}}())
 		or return;
 
-	my $Logic = $Inet2Logic->{$Iface}->{$Addr};
+	my $Logic = $Inet2Logic->{$Iface}{$Addr};
 
 	my $RunIndex = 1;
 	for(; !defined($Logic); $RunIndex++)
@@ -495,7 +502,7 @@ my $UpDownNewLog = sub($$$$)
 			$@ = "Command '$CName': maximum number of logic interfaces ($MAXLOGIC) on interface '$Iface' exceeded";
 			return;
 			};
-		defined($Logic2Inet->{"$Iface:$RunIndex"})
+		defined($Logic2Inet->{$Iface}{$RunIndex})
 			or $Logic = $RunIndex;
 		};
         
@@ -518,10 +525,12 @@ my $UpDownReqLog = sub($$$$)
 		};
 
 	defined($Inet2Logic)
-		or &{$Ifconfig{'list'}->{$^O}->{'function'}}()
+		or (defined($Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	            &{$Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}}()     :
+	            &{$Ifconfig{'list'}{$^O}{'function'}}())
 		or return;
 
-	my $Logic = $Inet2Logic->{$Iface}->{$Addr};
+	my $Logic = $Inet2Logic->{$Iface}{$Addr};
 
 	if (!defined($Logic))
 		{
@@ -586,7 +595,9 @@ my $Win32AddAlias = sub($$$$)
 		};
 
 	defined($Inet2Logic)
-		or &{$Ifconfig{'list'}->{$^O}->{'function'}}()
+		or (defined($Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	            &{$Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}}()     :
+	            &{$Ifconfig{'list'}{$^O}{'function'}}())
 		or return;
 
 	my $NTEContext  = pack('L', 0);
@@ -600,7 +611,7 @@ my $Win32AddAlias = sub($$$$)
 		return;
 		};
         
-	my $Res = $Win32API{'iphlpapi'}->{'AddIPAddress'}->Call(&{$PackIP}($Addr), &{$PackIP}($Mask), $Index, $NTEContext, $NTEInstance);
+	my $Res = $Win32API{'iphlpapi'}{'AddIPAddress'}->Call(&{$PackIP}($Addr), &{$PackIP}($Mask), $Index, $NTEContext, $NTEInstance);
 
 	if ($Res != $Win32_NO_ERROR)
 		{
@@ -627,10 +638,12 @@ my $Win32RemAlias = sub($$$$)
 		};
 
 	defined($Inet2Logic)
-		or &{$Ifconfig{'list'}->{$^O}->{'function'}}()
+		or (defined($Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	            &{$Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}}()     :
+	            &{$Ifconfig{'list'}{$^O}{'function'}}())
 		or return;
 
-	my $Logic = $Inet2Logic->{$Iface}->{$Addr};
+	my $Logic = $Inet2Logic->{$Iface}{$Addr};
 
 	if (!defined($Logic))
 		{
@@ -638,7 +651,7 @@ my $Win32RemAlias = sub($$$$)
 		return;
 		};
         
-	my $Res = $Win32API{'iphlpapi'}->{'DeleteIPAddress'}->Call($Logic);
+	my $Res = $Win32API{'iphlpapi'}{'DeleteIPAddress'}->Call($Logic);
 
 	if ($Res != $Win32_NO_ERROR)
 		{
@@ -659,18 +672,18 @@ $Ifconfig{'inet'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface% inet %A
 #                     'MSWin32' => {'ifconfig' => '',
 #                                   'function' => $Win32Inet,},
                     };
-$Ifconfig{'inet'}->{'freebsd'} = $Ifconfig{'inet'}->{'solaris'};
-$Ifconfig{'inet'}->{'openbsd'} = $Ifconfig{'inet'}->{'solaris'};
-$Ifconfig{'inet'}->{'linux'}   = $Ifconfig{'inet'}->{'solaris'};
+$Ifconfig{'inet'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'inet'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'inet'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
                
 $Ifconfig{'up'} = $Ifconfig{'inet'};
 
-$Ifconfig{'down'}->{'solaris'} = {'ifconfig' => '/sbin/ifconfig %Iface% down',
+$Ifconfig{'down'}{'solaris'} = {'ifconfig' => '/sbin/ifconfig %Iface% down',
                                   'function' => $UpDown,
                                  };
-$Ifconfig{'down'}->{'freebsd'} = $Ifconfig{'inet'}->{'solaris'};
-$Ifconfig{'down'}->{'openbsd'} = $Ifconfig{'inet'}->{'solaris'};
-$Ifconfig{'down'}->{'linux'}   = $Ifconfig{'inet'}->{'solaris'};
+$Ifconfig{'down'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'down'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'down'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
 
 $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%         inet %Addr% netmask %Mask% alias',
                                      'function' => $UpDown},
@@ -679,10 +692,13 @@ $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%      
                        'MSWin32' => {'ifconfig' => '',
                                      'function' => $Win32AddAlias,},
                       };
-$Ifconfig{'+alias'}->{'openbsd'} = $Ifconfig{'+alias'}->{'freebsd'};
-$Ifconfig{'+alias'}->{'linux'}   = $Ifconfig{'+alias'}->{'solaris'};
+$Ifconfig{'+alias'}{'openbsd'} = $Ifconfig{'+alias'}{'freebsd'};
+$Ifconfig{'+alias'}{'linux'}   = $Ifconfig{'+alias'}{'solaris'};
+
+$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
 
 $Ifconfig{'alias'} = $Ifconfig{'+alias'};
+
 
 $Ifconfig{'-alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface% inet %Addr% -alias',
                                      'function' => $UpDown},
@@ -691,19 +707,27 @@ $Ifconfig{'-alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface% inet 
                        'MSWin32' => {'ifconfig' => '',
                                      'function' => $Win32RemAlias,},
                       };
-$Ifconfig{'-alias'}->{'openbsd'} = $Ifconfig{'-alias'}->{'freebsd'};
-$Ifconfig{'-alias'}->{'linux'}   = $Ifconfig{'-alias'}->{'solaris'};
+$Ifconfig{'-alias'}{'openbsd'} = $Ifconfig{'-alias'}{'freebsd'};
+$Ifconfig{'-alias'}{'linux'}   = $Ifconfig{'-alias'}{'solaris'};
 
 sub Ifconfig
 	{
 	my ($CName, $Iface, $Addr, $Mask) = @_;
-	if (!($CName && $Ifconfig{$CName} && $Ifconfig{$CName}->{$^O}))
+	if (!($CName && $Ifconfig{$CName} && $Ifconfig{$CName}{$^O}))
 		{
 		$@ = "Command '$CName' is not defined for system '$^O'";
 		return;
 		};
 	
-	my $Output = &{$Ifconfig{$CName}->{$^O}->{'function'}}($CName, $Iface, $Addr, $Mask);
+	defined($Inet2Logic)
+		or (defined($Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	            &{$Ifconfig{'list'}{$^O}{$OsName}{$OsVers}{'function'}}()     :
+	            &{$Ifconfig{'list'}{$^O}{'function'}}())
+		or return;
+
+	my $Output = (defined($Ifconfig{$CName}{$^O}{$OsName}{$OsVers}{'function'}) ?
+	              &{$Ifconfig{$CName}{$^O}{$OsName}{$OsVers}{'function'}}($CName, $Iface, $Addr, $Mask) :
+	              &{$Ifconfig{$CName}{$^O}{'function'}}($CName, $Iface, $Addr, $Mask));
 
 	$Output ? return $Output : return;        
 	};
@@ -718,7 +742,7 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
 
 
-I<Version 0.02>
+I<Version 0.03>
 
 =head1 SYNOPSIS
 
@@ -811,16 +835,16 @@ I<Version 0.02>
   	{
   	my ($Info, $Iface) = @_;
   
-  	my $Res = "$Iface:\t".($Info->{$Iface}->{'status'} ? 'UP' : 'DOWN')."\n";
+  	my $Res = "$Iface:\t".($Info->{$Iface}{'status'} ? 'UP' : 'DOWN')."\n";
   
-  	while (my ($Addr, $Mask) = each(%{$Info->{$Iface}->{'inet'}}))
+  	while (my ($Addr, $Mask) = each(%{$Info->{$Iface}{'inet'}}))
   		{ $Res .= sprintf("\tinet %-15s mask $Mask\n", $Addr); };
   	
-  	$Info->{$Iface}->{'ether'}
-  		and $Res .= "\tether ".$Info->{$Iface}->{'ether'}."\n";
+  	$Info->{$Iface}{'ether'}
+  		and $Res .= "\tether ".$Info->{$Iface}{'ether'}."\n";
   
-  	$Info->{$Iface}->{'descr'}
-  		and $Res .= "\tdescr '".$Info->{$Iface}->{'descr'}."'\n";
+  	$Info->{$Iface}{'descr'}
+  		and $Res .= "\tdescr '".$Info->{$Iface}{'descr'}."'\n";
   	
   	return $Res;
   	};
