@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -162,8 +162,7 @@ my $SolarisList = sub($$$$)
 			{
 			$Info->{$Iface}{'ether'} = $ETHERNET;
 			}
-		elsif (($_ =~ m/\A\s+ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io) ||
-		       ($_ =~ m/\A\s+address:\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io))
+		elsif ($_ =~ m/\A\s+ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io)
 			{
 			$Info->{$Iface}{'ether'} = $1;
 			};
@@ -215,51 +214,6 @@ my $LinuxList = sub($$$$)
 	return $Info;
 	};
 
-my $AixList = sub($$$$)
-	{
-        $Inet2Logic = undef;
-        $Logic2Inet = undef;
-
-        my $Output = &{$RunCmd}('list', '', '', '', '')
-        	or return;
-
-        $Inet2Logic = {};
-        $Logic2Inet = {};
-
-        my $Iface = undef;
-        my $Logic = undef;
-        my $Info  = {};
-	foreach (@{$Output})
-		{
-		if    ($_ =~ m/\A([a-z]+(\d+))\:\s+flags=+[0-9a-z\,]+<(.*)>+.*\n?\Z/io)
-			{
-			$Iface = $1;
-			$Logic = "";
-			defined($2)
-				and $Info->{$Iface}{'ether'} = $2;
-                        if ($3 =~ /^UP.*/ )
-                          {
-			    $Info->{$Iface}{'status'} = 1;
-                          }
-                        else
-                          {
-			    $Info->{$Iface}{'status'} = 0;
-                          }
-			}
-		elsif (!$Iface)
-			{
-			next;
-			}
-		elsif ($_ =~ m/\A\s+inet\s+(\d{1,3}(?:\.\d{1,3}){3})\s+(?:.*\s)?netmask\s+0x+([0-9a-f]+).*\n?\Z/io)
-			{
-			$Info->{$Iface}{'inet'}{$1} = $Hex2Mask{$2};
-			$Inet2Logic->{$Iface}{$1} = $Logic;
-			$Logic2Inet->{$Iface}{$Logic} = $1;
-			}
-		};
-
-	return $Info;
-	};
 
 my $st_IP_ADDR_STRING =
 	['Next'      => 'L',   #struct _IP_ADDR_STRING*
@@ -498,14 +452,11 @@ $Ifconfig{'list'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig -a',
                                    'function' => $SolarisList},
                      'linux'   => {'ifconfig' => '/sbin/ifconfig -a',
                                    'function' => $LinuxList},
-                     'aix'     => {'ifconfig' => '/etc/ifconfig -a',
-                                   'function' => $AixList},
                      'MSWin32' => {'ifconfig' => '',
                                    'function' => $Win32List,},
                     };
 
 $Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};
-$Ifconfig{'list'}{'darwin'}  = $Ifconfig{'list'}{'solaris'};
 
 my $UpDown = sub($$$$)
 	{
@@ -718,25 +669,19 @@ my $Win32RemAlias = sub($$$$)
 
 $Ifconfig{'inet'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface% inet %Addr% netmask %Mask% up',
                                    'function' => $UpDown},
-                     'aix'     => {'ifconfig' => '/etc/ifconfig %Iface% inet %Addr% netmask %Mask% up',
-                                   'function' => $UpDown},
-#                    'MSWin32' => {'ifconfig' => '',
+#                     'MSWin32' => {'ifconfig' => '',
 #                                   'function' => $Win32Inet,},
                     };
 $Ifconfig{'inet'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
-$Ifconfig{'inet'}{'darwin'}  = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'inet'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'inet'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
                
 $Ifconfig{'up'} = $Ifconfig{'inet'};
 
-$Ifconfig{'down'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface% down',
-                                   'function' => $UpDown},
-                     'aix'     => {'ifconfig' => '/etc/ifconfig %Iface% down',
-                                   'function' => $UpDown},
+$Ifconfig{'down'}{'solaris'} = {'ifconfig' => '/sbin/ifconfig %Iface% down',
+                                  'function' => $UpDown,
                                  };
 $Ifconfig{'down'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
-$Ifconfig{'down'}{'darwin'}  = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'down'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
 $Ifconfig{'down'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
 
@@ -744,16 +689,14 @@ $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%      
                                      'function' => $UpDown},
                        'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up',
                                      'function' => $UpDownNewLog},
-                       'aix'     => {'ifconfig' => '/etc/ifconfig %Iface%          inet %Addr% netmask %Mask% alias',
-                                     'function' => $UpDownNewLog},
                        'MSWin32' => {'ifconfig' => '',
                                      'function' => $Win32AddAlias,},
                       };
 $Ifconfig{'+alias'}{'openbsd'} = $Ifconfig{'+alias'}{'freebsd'};
-$Ifconfig{'+alias'}{'darwin'}  = $Ifconfig{'+alias'}{'freebsd'};
 $Ifconfig{'+alias'}{'linux'}   = $Ifconfig{'+alias'}{'solaris'};
 
 $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
+$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
 
 $Ifconfig{'alias'} = $Ifconfig{'+alias'};
 
@@ -762,14 +705,13 @@ $Ifconfig{'-alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface% inet 
                                      'function' => $UpDown},
                        'solaris' => {'ifconfig' => '/sbin/ifconfig %Iface%:%Logic% down',
                                      'function' => $UpDownReqLog},
-                       'aix' =>     {'ifconfig' => '/etc/ifconfig %Iface% inet %Addr% delete',
-                                     'function' => $UpDownReqLog},
                        'MSWin32' => {'ifconfig' => '',
                                      'function' => $Win32RemAlias,},
                       };
 $Ifconfig{'-alias'}{'openbsd'} = $Ifconfig{'-alias'}{'freebsd'};
-$Ifconfig{'-alias'}{'darwin'}  = $Ifconfig{'-alias'}{'freebsd'};
 $Ifconfig{'-alias'}{'linux'}   = $Ifconfig{'-alias'}{'solaris'};
+
+$Ifconfig{'-alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% unplumb';
 
 sub Ifconfig
 	{
@@ -803,15 +745,14 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
 
 
-I<Version 0.04>
+I<Version 0.05>
 
 =head1 SYNOPSIS
 
   #!/usr/local/bin/perl -w
   # uni-ifconfig.pl
   # The unified ifconfig command.
-  # Works the same way on
-  #  FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K), AIX, Darwin.
+  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
   # Note: due of Net::Ifconfig::Wrapper limitations 'inet' and 'down' commands
   # are not working on WinNT. +/-alias are working, of course.
   
@@ -915,7 +856,7 @@ I<Version 0.04>
 =head1 DESCRIPTION
 
 This module provides a unified way to configure the network interfaces
-on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K), AIX, Mac OS X (aka "Darwin") systems.
+on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K) systems.
 
 I<B<Only C<inet> (IPv4) and C<ether> (MAC) addresses are supported at the moment>>
 
@@ -983,14 +924,6 @@ C</sbin/ifconfig -A>
 
 C</sbin/ifconfig -a>
 
-=item AIX
-
-C</etc/ifconfig  -a>
-
-=item Darwin
-
-C</sbin/ifconfig -a>
-
 =item MSWin32
 
 C<GetAdaptersInfo> function from C<IpHlpAPI.DLL>
@@ -999,7 +932,7 @@ C<GetAdaptersInfo> function from C<IpHlpAPI.DLL>
 
 Limitations:
 
-OpenBSD 3.2-: C</sbin/ifconfig -A> command is not returning information about MAC addresses
+OpenBSD: C</sbin/ifconfig -A> command is not returning information about MAC addresses
 so we are trying to get it from C<'/usr/sbin/arp -a'> command (first I<C<'static'>> entry).
 If no one present the I<C<'ff:ff:ff:ff:ff'>> address is returned.
 
@@ -1032,21 +965,13 @@ C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
 
 =item Solaris
 
-C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
+C</sbin/ifconfig %Iface% inet %Addr% netmask %Mask% up>
 
 =item OpenBSD
 
 C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
 
 =item Linux
-
-C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
-
-=item AIX
-
-C</etc/ifconfig  %Iface% inet %Addr% netmask  %Mask% up>
-
-=item Darwin
 
 C</sbin/ifconfig %Iface% inet %Addr% netmask  %Mask% up>
 
@@ -1095,14 +1020,6 @@ C</sbin/ifconfig %Iface% down>
 
 C</sbin/ifconfig %Iface% down>
 
-=item AIX
-
-C</etc/ifconfig  %Iface% down>
-
-=item Darwin
-
-C</sbin/ifconfig %Iface% down>
-
 =item MSWin32
 
 nothing :(
@@ -1145,14 +1062,6 @@ C</sbin/ifconfig %Iface%         inet %Addr% netmask  %Mask% alias>
 =item Linux
 
 C</sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask  %Mask% up>
-
-=item AIX
-
-C</etc/ifconfig  %Iface%         inet %Addr% netmask  %Mask% alias>
-
-=item FreeBSD
-
-C</sbin/ifconfig %Iface%         inet %Addr% netmask  %Mask% alias>
 
 =item MSWin32
 
@@ -1197,14 +1106,6 @@ C</sbin/ifconfig %Iface% inet %Addr% -alias>
 =item Linux
 
 C</sbin/ifconfig %Iface%:%Logic% down>
-
-=item AIX
-
-C</etc/ifconfig  %Iface% inet %Addr% delete>
-
-=item Darwin
-
-C</sbin/ifconfig %Iface% inet %Addr% -alias>
 
 =item MSWin32
 

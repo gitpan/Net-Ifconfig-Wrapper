@@ -1,7 +1,7 @@
-Net::IfConfig::Wrapper version 0.04
+Net::IfConfig::Wrapper version 0.05
 ===================
 
-This module could be used to call the ifconfig command on different Unix systems
+This module could be use to call the ifconfig command on different Unix systems
 and WinNT (from Win2K) systems.
 
 It is providing the unified way to obtain info from ifconfig, create and delete
@@ -9,11 +9,6 @@ the IP aliases on interfaces, etc.
 
 Module was tested on FreeBSD 4.7 (Intel), RedHat 6.2,7.3,8.0 (Intel),
 Win2000 Pro (Intel), OpenBSD 3.1 (SPARC), Solaris 7 (SPARC).
-
-Support for the following OSes was contributed by other people (I was not able to test it):
- AIX: Ohishi Masaki
- Mac OS X (aka "Darwin"):  Stephen Steneker and Manon Goo (independently in the same time :) )
- OpenBSD 3.3+: Mike McClure
 
 INSTALLATION
 

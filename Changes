@@ -1,5 +1,9 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
+0.05  Tue May 25 13:30:00 2004
+	- Specific ifconfig command added for SunOS 5.9
+	  Thanks to Robert Franklin
+
 0.04  Wed Feb 18 22:00:00 2004
 	- AIX support added.
 	  Thanks to Ohishi Masaki
@@ -9,10 +13,10 @@ Revision history for Perl extension Net::IfConfig::Wrapper.
 	  Thanks to Mike McClure
 
 0.03  Fri Mar 28 18:30:00 2003
-	- Alias add/remove tests automaticaly skipped for non-root users
+	- Alias add/remove tests automatically skipped for non-root users
 	- Internal structures are changed to allow specific ifconfig commands
 	  for specific versions of same OS
-	- Dependency on POSIX mudule added
+	- Dependency on POSIX module added
 	- Specific ifconfig command added for SunOS 5.8 fixing problem with interface 'plumb'
 	  Unfortunately I'm not able to test it because I do not have a corresponding platform
 	- Bugfix for "always uses ethX:1" bug. Thanks to Cory R. King.
@@ -21,10 +25,10 @@ Revision history for Perl extension Net::IfConfig::Wrapper.
 	- Minor bug fixed
 	- For OpenBSD on SPARC we are trying to use 'arp -a' command to detect MAC address
 	- Module is working on Win2K or later, mark it clearly in documentation.
-	- Licence changed
+	- License changed
 
 0.01  Tue Nov 12 15:15:00 2002
 	- original version; created by h2xs 1.21 with options
-		-AXcfn UniLog
+		-AXcfn Net::IfConfig::Wrapper
 
 

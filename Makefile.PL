@@ -6,8 +6,6 @@ my %Supported = ('freebsd' => 1,
                  'solaris' => 1,
                  'linux'   => 1,
                  'openbsd' => 1,
-                 'aix'     => 1,
-                 'darwin'  => 1,
                  'MSWin32' => 1,
                 );
 
