@@ -1,0 +1,7 @@
+Revision history for Perl extension Net::IfConfig::Wrapper.
+
+0.01  Tue Nov 12 15:15:00 2002
+	- original version; created by h2xs 1.21 with options
+		-AXcfn UniLog
+
+
