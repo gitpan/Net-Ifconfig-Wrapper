@@ -17,7 +17,7 @@ my $PreReq = {};
 if ( $^O eq 'MSWin32' )
 	{
 	Win32::IsWinNT()
-		or warn "\nWARNING! Only WinNT is supported\b\n\n";
+		or warn "\nWARNING! Only WinNT (from Win2K) is supported\b\n\n";
 	$PreReq->{'Win32::API'}      = 0;
 	$PreReq->{'Win32::WinError'} = 0;
 	};

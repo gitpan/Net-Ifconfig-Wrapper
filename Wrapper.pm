@@ -16,16 +16,12 @@ require Exporter;
 %EXPORT_TAGS = ('Ifconfig' => [qw(Ifconfig)]);
 
 foreach (keys(%EXPORT_TAGS))
-	{
-	if ($_ eq 'all')
-		{ next; };
-	push(@{$EXPORT_TAGS{'all'}}, @{$EXPORT_TAGS{$_}});
-	};
+        { push(@{$EXPORT_TAGS{'all'}}, @{$EXPORT_TAGS{$_}}); };
 
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 my $Win32_FormatMessage   = undef;
 my %Win32API = ();
@@ -40,13 +36,19 @@ my $Win32_ERROR_BUFFER_OVERFLOW     = undef;
 my $Win32_ERROR_INSUFFICIENT_BUFFER = undef;
 my $Win32_NO_ERROR                  = undef;
 
+my $ETHERNET = 'ff:ff:ff:ff:ff:ff';
+
+(($^O eq 'openbsd') &&
+ (`/usr/sbin/arp -a 2>&1` =~ m/(?:\A|\n).+\s+at\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})\s+static\s*(?:\n|\Z)/i))
+	and $ETHERNET = $1;
+
 if ($^O eq 'MSWin32')
 	{
 	eval 'use Win32::API;
 	      use Win32::WinError;
 	      
 	      Win32::IsWinNT()
-	      	or die "Only WinNT is supported";
+	      	or die "Only WinNT (from Win2K) is supported";
 
 	      $Win32_FormatMessage = sub { return Win32::FormatMessage(@_); };
 	      $Win32_ERROR_BUFFER_OVERFLOW     = ERROR_BUFFER_OVERFLOW;
@@ -131,8 +133,8 @@ my $SolarisList = sub($$$$)
         my $Info  = {};
 	foreach (@{$Output})
 		{
-		if    (($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=\d+\<(?:\w+\,)*(up)?(?:\,\w+)*\>.*\n?\Z/io) ||
-		       ($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=\d+\<(?:\w+(?:\,\w+)*)*\>.*\n?\Z/io))
+		if    (($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+\,)*(up)?(?:\,\w+)*\>.*\n?\Z/io) ||
+		       ($_ =~ m/\A([a-z]+\d+)(?:\:(\d+))?\:\s+flags=[^\<]+\<(?:\w+(?:\,\w+)*)*\>.*\n?\Z/io))
 			{
 			$Iface = $1;
 			$Logic = defined($2) ? $2 : '';
@@ -150,6 +152,10 @@ my $SolarisList = sub($$$$)
 				and $Info->{$Iface}->{'inet'}->{$1} = $Hex2Mask{$2};
 			$Inet2Logic->{$Iface}->{$1} = $Logic;
 			$Logic2Inet->{$Iface}->{$Logic} = $1;
+			}
+		elsif (($_ =~ m/\A\s+media\:?\s+ethernet.*\n?\Z/io) && !$Info->{$Iface}->{'ether'})
+			{
+			$Info->{$Iface}->{'ether'} = $ETHERNET;
 			}
 		elsif ($_ =~ m/\A\s+ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io)
 			{
@@ -246,6 +252,7 @@ my $st_IP_ADAPTER_INFO =
 #	 'unused2'      => 'S', #unsigned short     
 #	];
 
+my %UnpackStrCache = ();
 my $UnpackStr = undef;
 $UnpackStr = sub($$)
 	{
@@ -253,12 +260,19 @@ $UnpackStr = sub($$)
 	$Repeat or $Repeat = 1;
 
 	my $StructUpStr = '';
-	for (my $RI = 1; defined($Struct->[$RI]); $RI += 2)
+
+	if (!defined($UnpackStrCache{$Struct}))
 		{
-		$StructUpStr .= ref($Struct->[$RI]) ?
-		                   &{$UnpackStr}($Struct->[$RI]) :
-		                   $Struct->[$RI];
-		};
+		for (my $RI = 1; defined($Struct->[$RI]); $RI += 2)
+			{
+			$StructUpStr .= ref($Struct->[$RI]) ?
+			                   &{$UnpackStr}($Struct->[$RI], 1) :
+			                   $Struct->[$RI];
+			};
+		$UnpackStrCache{$Struct} = $StructUpStr;
+		}
+	else
+		{ $StructUpStr = $UnpackStrCache{$Struct}; };
 
 	my $UpStr = '';
 	for (; $Repeat > 0; $Repeat--)
@@ -591,7 +605,8 @@ my $Win32AddAlias = sub($$$$)
 	if ($Res != $Win32_NO_ERROR)
 		{
 		$! = $Res;
-		$@ = &{$Win32_FormatMessage}($Res);
+		$@ = &{$Win32_FormatMessage}($Res)
+			or $@ = 'Unknown error :(';
 		return;
 		};
 
@@ -693,12 +708,6 @@ sub Ifconfig
 	$Output ? return $Output : return;        
 	};
 
-sub aaa()
-	{ return $Inet2Logic; };
-sub bbb()
-	{ return $Logic2Inet; };
-
-
 1;
 __END__
 # Below is stub documentation for your module. You better edit it!
@@ -706,17 +715,17 @@ __END__
 =head1 NAME
 
 Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
-on FreeBSD, OpenBSD, Solaris, Linux, WinNT.
+on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
 
 
-I<Version 0.01>
+I<Version 0.02>
 
 =head1 SYNOPSIS
 
   #!/usr/local/bin/perl -w
   # uni-ifconfig.pl
   # The unified ifconfig command.
-  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, WinNT.
+  # Works the same way on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
   # Note: due of Net::Ifconfig::Wrapper limitations 'inet' and 'down' commands
   # are not working on WinNT. +/-alias are working, of course.
   
@@ -820,7 +829,7 @@ I<Version 0.01>
 =head1 DESCRIPTION
 
 This module provides a unified way to configure the network interfaces
-on FreeBSD, OpenBSD, Solaris, Linux, WinNT systems.
+on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K) systems.
 
 I<B<Only C<inet> (IPv4) and C<ether> (MAC) addresses are supported at the moment>>
 
@@ -833,7 +842,7 @@ command to be C</sbin/ifconfig>.
 Module was tested on FreeBSD 4.7 (Intel), RedHat 6.2,7.3,8.0 (Intel),
 Win2000 Pro (Intel), OpenBSD 3.1 (SPARC), Solaris 7 (SPARC).
 
-I<In MSWin32 family only WinNT(2K,XP) is supported>
+I<In MSWin32 family only WinNT is supported. In WinNT family only Win2K or later is supported.>
 
 =head1 The Net::Ifconfig::Wrapper methods
 
@@ -897,11 +906,12 @@ C<GetAdaptersInfo> function from C<IpHlpAPI.DLL>
 Limitations:
 
 OpenBSD: C</sbin/ifconfig -A> command is not returning information about MAC addresses
-so C<Net::Ifconfig::Wrapper> have no ability to display them ever.
+so we are trying to get it from C<'/usr/sbin/arp -a'> command (first I<C<'static'>> entry).
+If no one present the I<C<'ff:ff:ff:ff:ff'>> address is returned.
 
 MSWin32: C<GetAdaptersInfo> function is not returning information about interface
 which have address C<127.0.0.1> binded
-so  C<Net::Ifconfig::Wrapper> have no ability to display it ever.
+so  C<Net::Ifconfig::Wrapper> have no ability to display it.
 
 Not limitation but little problem: MSWin32 interface names are not human-readable,
 they looks like C<{843C2077-30EC-4C56-A401-658BB1E42BC7}> (on Win2K at least).

@@ -1,8 +1,8 @@
-Net::IfConfig::Wrapper version 0.01
+Net::IfConfig::Wrapper version 0.02
 ===================
 
 This module could be use to call the ifconfig command on different Unix systems
-and WinNT systems.
+and WinNT (from Win2K) systems.
 
 It is providing the unified way to obtain info from ifconfig, create and delete
 the IP aliases on interfaces, etc.
@@ -28,7 +28,8 @@ Win32::WinError
 
 COPYRIGHT AND LICENCE
 
-No copyright, no licence. Be patient...
+Copyright: Daniel Podolsky <tpaba@cpan.org>, 2003
+Licence:   Same as perl itself
 
 21 Jan 2003, Daniel Podolsky <tpaba@cpan.org>
 
