@@ -14,6 +14,8 @@ my %IfCfgCmd = ('freebsd' => '/sbin/ifconfig -a',
                 'solaris' => '/sbin/ifconfig -a',
                 'openbsd' => '/sbin/ifconfig -A',
                 'linux'   => '/sbin/ifconfig -a',
+                'aix'     => '/etc/ifconfig  -a',
+                'darwin'  => '/sbin/ifconfig -a',
                );
 
 print 'Loading Net::Ifconfig::Wrapper........';

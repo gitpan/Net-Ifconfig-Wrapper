@@ -1,5 +1,13 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
+0.04  Wed Feb 18 22:00:00 2004
+	- AIX support added.
+	  Thanks to Ohishi Masaki
+	- Mac OS X (aka "Darwin") support added.
+	  Thanks to Stephen Steneker and Manon Goo
+	- OpenBSD 3.3+ ifconfig properly lists the MAC address for interfaces. Support added.
+	  Thanks to Mike McClure
+
 0.03  Fri Mar 28 18:30:00 2003
 	- Alias add/remove tests automaticaly skipped for non-root users
 	- Internal structures are changed to allow specific ifconfig commands
