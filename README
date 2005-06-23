@@ -1,4 +1,4 @@
-Net::IfConfig::Wrapper version 0.05
+Net::IfConfig::Wrapper version 0.06
 ===================
 
 This module could be use to call the ifconfig command on different Unix systems

@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -109,12 +109,15 @@ my $RunCmd = sub($$)
 
 	#print "\n=== RunCmd ===\n\$CName: $CName, \$Iface: $Iface, \$Logic: $Logic, \$Addr: $Addr, \$Mask: $Mask\n";
 
-        $Cmd =~ s{%Iface%}{$Iface}gsex;
-        $Cmd =~ s{%Logic%}{$Logic}gsex;
-        $Cmd =~ s{%Addr%}{$Addr}gsex;
-        $Cmd =~ s{%Mask%}{$Mask}gsex;
-
-        my @Output = `$Cmd`;
+	$Cmd =~ s{%Iface%}{$Iface}gsex;
+	$Cmd =~ s{%Logic%}{$Logic}gsex;
+	$Cmd =~ s{%Addr%}{$Addr}gsex;
+	$Cmd =~ s{%Mask%}{$Mask}gsex;
+	
+	my $saveLang = $ENV{'LANG'};
+	$ENV{'LANG'} = 'C';
+	my @Output   = `$Cmd`;
+	$ENV{'LANG'} = $saveLang;
 
 	$@ = "Command '$Cmd', exit code '".(defined($?) ? $? : '!UNDEFINED!')."'".join("\t", @Output);
         
@@ -681,9 +684,9 @@ $Ifconfig{'up'} = $Ifconfig{'inet'};
 $Ifconfig{'down'}{'solaris'} = {'ifconfig' => '/sbin/ifconfig %Iface% down',
                                   'function' => $UpDown,
                                  };
-$Ifconfig{'down'}{'freebsd'} = $Ifconfig{'inet'}{'solaris'};
-$Ifconfig{'down'}{'openbsd'} = $Ifconfig{'inet'}{'solaris'};
-$Ifconfig{'down'}{'linux'}   = $Ifconfig{'inet'}{'solaris'};
+$Ifconfig{'down'}{'freebsd'} = $Ifconfig{'down'}{'solaris'};
+$Ifconfig{'down'}{'openbsd'} = $Ifconfig{'down'}{'solaris'};
+$Ifconfig{'down'}{'linux'}   = $Ifconfig{'down'}{'solaris'};
 
 $Ifconfig{'+alias'} = {'freebsd' => {'ifconfig' => '/sbin/ifconfig %Iface%         inet %Addr% netmask %Mask% alias',
                                      'function' => $UpDown},
@@ -745,7 +748,7 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, WinNT (from Win2K).
 
 
-I<Version 0.05>
+I<Version 0.06>
 
 =head1 SYNOPSIS
 

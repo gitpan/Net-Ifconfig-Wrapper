@@ -1,5 +1,10 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
+0.06  Tue May 25 13:30:00 2004
+	- Bugfix: 'down' command was provided incorrectly for freebsd, openbsd, linux
+	- Bugfix: LANG env variable set explicitely to get expected ifconfig output all the time
+	  Thanks to zummeer at gmx.de for both
+
 0.05  Tue May 25 13:30:00 2004
 	- Specific ifconfig command added for SunOS 5.9
 	  Thanks to Robert Franklin
