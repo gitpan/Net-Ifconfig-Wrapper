@@ -7,6 +7,7 @@ my %Supported = ('freebsd' => 1,
                  'linux'   => 1,
                  'openbsd' => 1,
                  'MSWin32' => 1,
+                 'darwin'  => 1,
                 );
 
 $Supported{$^O}

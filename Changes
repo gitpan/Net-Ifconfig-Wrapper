@@ -1,10 +1,14 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
-0.07  Tue May 25 13:30:00 2004
+0.08  Wed Jun 17 07:13:00 2005
+	- Bugfix: darwin was not supported in Makefile.PL
+	  Thanks to Stephen Steneker again
+
+0.07  Thu Jul 07 13:30:00 2005
 	- Bugfix: darwin patch was lost in version 0.06. Re-implemented.
 	  Thanks to Stephen Steneker again
 
-0.06  Tue May 25 13:30:00 2004
+0.06  Thu Jun 23 13:30:00 2005
 	- Bugfix: 'down' command was provided incorrectly for freebsd, openbsd, linux
 	- Bugfix: LANG env variable set explicitely to get expected ifconfig output all the time
 	  Thanks to zummeer at gmx.de for both

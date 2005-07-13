@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.07';
+$VERSION = '0.08';
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -752,7 +752,7 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
 
 
-I<Version 0.07>
+I<Version 0.08>
 
 =head1 SYNOPSIS
 
