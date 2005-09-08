@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -701,8 +701,9 @@ $Ifconfig{'+alias'}{'openbsd'} = $Ifconfig{'+alias'}{'freebsd'};
 $Ifconfig{'+alias'}{'linux'}   = $Ifconfig{'+alias'}{'solaris'};
 $Ifconfig{'+alias'}{'darwin'}  = $Ifconfig{'+alias'}{'freebsd'};
 
-$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
-$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'} = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
+$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'}  = '/sbin/ifconfig %Iface%:%Logic% plumb; /sbin/ifconfig %Iface%:%Logic% inet %Addr% netmask %Mask% up';
+$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.9'}{'ifconfig'}  = $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'};
+$Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.10'}{'ifconfig'} = $Ifconfig{'+alias'}{'solaris'}{'SunOS'}{'5.8'}{'ifconfig'};
 
 $Ifconfig{'alias'} = $Ifconfig{'+alias'};
 
@@ -752,7 +753,7 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
 
 
-I<Version 0.08>
+I<Version 0.09>
 
 =head1 SYNOPSIS
 
