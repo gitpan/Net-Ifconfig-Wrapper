@@ -21,7 +21,7 @@ foreach (keys(%EXPORT_TAGS))
 $EXPORT_TAGS{'all'}
 	and @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 use POSIX;
 my ($OsName, $OsVers) = (POSIX::uname())[0,2];
@@ -45,7 +45,7 @@ my $ETHERNET = 'ff:ff:ff:ff:ff:ff';
  (`/usr/sbin/arp -a 2>&1` =~ m/(?:\A|\n).+\s+at\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})\s+static\s*(?:\n|\Z)/i))
 	and $ETHERNET = $1;
 
-if ($^O eq 'MSWin32')
+if (($^O eq 'MSWin32') || ($^O eq 'cygwin'))
 	{
 	eval 'use Win32::API;
 	      use Win32::WinError;
@@ -161,9 +161,15 @@ my $SolarisList = sub($$$$)
 			$Inet2Logic->{$Iface}{$1} = $Logic;
 			$Logic2Inet->{$Iface}{$Logic} = $1;
 			}
-		elsif (($_ =~ m/\A\s+media\:?\s+ethernet.*\n?\Z/io) && !$Info->{$Iface}{'ether'})
+		elsif (($_ =~ m/\A\s+media\:?\s+(ethernet.*)\s*\n?\Z/io) && !$Info->{$Iface}{'ether'})
 			{
 			$Info->{$Iface}{'ether'} = $ETHERNET;
+			if (!$Info->{$Iface}{'media'})
+				{$Info->{$Iface}{'media'} = $1; };
+			}
+		elsif (($_ =~ m/\A\s+supported\s+media\:?\s+(.*)\s*\n?\Z/io) && !$Info->{$Iface}{'media'})
+			{
+			$Info->{$Iface}{'media'} = $1;
 			}
 		elsif ($_ =~ m/\A\s+ether\s+([a-f\d]{1,2}(?:\:[a-f\d]{1,2}){5})(?:\s.*)?\n?\Z/io)
 			{
@@ -459,7 +465,9 @@ $Ifconfig{'list'} = {'solaris' => {'ifconfig' => '/sbin/ifconfig -a',
                                    'function' => $Win32List,},
                     };
 
-$Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};$Ifconfig{'list'}{'darwin'}  = $Ifconfig{'list'}{'solaris'};
+$Ifconfig{'list'}{'freebsd'} = $Ifconfig{'list'}{'solaris'};$Ifconfig{'list'}{'darwin'}  = $Ifconfig{'list'}{'solaris'};
+$Ifconfig{'list'}{'cygwin'}  = $Ifconfig{'list'}{'MSWin32'};
+
 
 my $UpDown = sub($$$$)
 	{
@@ -753,7 +761,7 @@ Net::Ifconfig::Wrapper - provides a unified way to configure network interfaces
 on FreeBSD, OpenBSD, Solaris, Linux, OS X, and WinNT (from Win2K).
 
 
-I<Version 0.09>
+I<Version 0.10>
 
 =head1 SYNOPSIS
 

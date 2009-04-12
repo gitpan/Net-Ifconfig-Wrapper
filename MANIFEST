@@ -3,4 +3,7 @@ Makefile.PL
 MANIFEST
 README
 test.pl
-Wrapper.pm
+lib/Net/Ifconfig/Wrapper.pm
+contrib/uni-ifconfig.pl
+contrib/Win32-list-ifaces.pl
+META.yml                                 Module meta-data (added by MakeMaker)

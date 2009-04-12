@@ -1,5 +1,10 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
+0.10  Sun Apr 12 15:40:00 2009
+	- Support for 'media' attribute added
+	- Support for CygWin added
+	  Thanks to Ben Bullock, and sorry for delay
+
 0.09  Wed Jun 17 07:13:00 2005
 	- SunOS 5.10 (Solaris 10) support added
 	  Thanks to Jesse Millan again
