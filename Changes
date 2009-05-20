@@ -1,5 +1,8 @@
 Revision history for Perl extension Net::IfConfig::Wrapper.
 
+0.11  Thu May 21 02:50:00 2009
+    - Bugfix: cygwin prerequesites must be the same as Win32
+
 0.10  Sun Apr 12 15:40:00 2009
 	- Support for 'media' attribute added
 	- Support for CygWin added

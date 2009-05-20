@@ -24,6 +24,12 @@ if ( $^O eq 'MSWin32' )
 	$preReq->{'Win32::WinError'} = 0;
 	};
 
+if ( $^O eq 'cygwin' )
+	{
+	$preReq->{'Win32::API'}      = 0;
+	$preReq->{'Win32::WinError'} = 0;
+	};
+
 WriteMakefile(
     NAME              => 'Net::Ifconfig::Wrapper',
     VERSION_FROM      => 'lib/Net/Ifconfig/Wrapper.pm', # finds $VERSION
